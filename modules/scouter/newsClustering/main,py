@@ -1,0 +1,72 @@
+import clusteringDoc as cl
+import connectES as es
+import N_gram as ng
+import math
+import json
+
+def topic_cluster(date):
+   qbody = es.ScouterHandler.make_date_query_body(date,("news_id","extContent","analyzed_text","analyzed_text.sentence.WSD.text","analyzed_text.sentence.WSD.type","category","analyzed_title.sentence.WSD.text","analyzed_title.sentence.WSD.type"))
+   docs  = getDoc.search(qbody,'major_newspaper')
+   result = {'date': date,
+       'doc count': len(docs)}
+   clus = cl.cluteringDoc(5,0.95,docs)
+   ctime, c_result, c_cent_result = clus.runClus()
+   c_doc=list()
+   #print(c_result[0][0])
+   for i in c_cent_result:
+       c_doc.append([i])
+
+       '''analyzed_doc = list()
+       for j in c_cent_result:
+           analyzed_doc.append(j)
+       c_doc.append(analyzed_doc)'''
+
+   #print(1)
+   for i in range(5):
+       cluster_uni, cluster_bi, cluster_tri=ng.ngram(c_doc[i])
+       cluster_uni = cluster_uni.most_common(10)
+       cluster_bi = cluster_bi.most_common(10)
+       cluster_tri = cluster_tri.most_common(10)
+       # a=sorted(cluster_uni.items(), key=lambda t:t[1], reverse=True)
+       # b=sorted(cluster_bi.items(), key=lambda t:t[1], reverse=True)
+       # c=sorted(cluster_tri.items(), key=lambda t:t[1], reverse=True)
+       result['cluster'+str(i+1)+'unigram'] = cluster_uni
+       result['cluster'+str(i+1)+'bigram'] = cluster_bi
+       result['cluster'+str(i+1)+'trigram'] = cluster_tri
+   return result
+
+getDoc = es.ScouterHandler() #__init__ 실행#contents 한줄
+
+for i in range(1, 6):
+   max = 0
+   if i in [1, 3, 5] : max = 31
+   elif i == 2: max = 28
+   elif i == 4: max = 30
+   for j in range(1, max+1):
+       date = '2019-{0:02d}-{1:02d}'.format(i,j)
+       topic_per_date = topic_cluster(date)
+       with open(date+'_2.txt', 'w', encoding='utf-8') as f:
+           f.write(json.dumps(topic_per_date,  ensure_ascii=False))
+'''
+topic_per_date = topic_cluster('2019-03-12')
+with open('2019-03-12'+'_2.txt', 'w', encoding='utf-8') as f:
+    f.write(json.dumps(topic_per_date,  ensure_ascii=False))'''
+
+
+#print(c_doc[0])
+'''
+for i in range(0,5):
+   print(c_result[0][i])
+print("2번클러스터")
+for i in range(0, 5):
+   print(c_result[1][i])
+print("3번클러스터")
+for i in range(0, 5):
+   print(c_result[2][i])
+print("4번클러스터")
+for i in range(0, 5):
+   print(c_result[3][i])
+print("5번클러스터")
+for i in range(0, 5):
+   print(c_result[4][i])
+'''
